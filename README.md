@@ -15,7 +15,7 @@ O campo é vertical, com paredes laterais, rede tracejada e placar com números 
 ## Executar localmente
 
 ```bash
-git clone https://github.com/SEU-USUARIO/pong.git
+git clone https://github.com/phfcuditablet/pong.git
 cd pong
 # abra o index.html no navegador
 ```
@@ -25,7 +25,7 @@ cd pong
 1. No repositório, abra **Settings → Pages**.
 2. Em **Build and deployment**, escolha **Deploy from a branch**.
 3. Selecione a branch `main` e a pasta `/ (root)`, e clique em **Save**.
-4. O jogo ficará em `https://SEU-USUARIO.github.io/pong/`.
+4. O jogo ficará em `https://phfcuditablet.github.io/pong/`.
 
 ## Estrutura
 
