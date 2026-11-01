@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pong</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:#000;color:#eee}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Press Start 2P",monospace;overflow:hidden;touch-action:none;user-select:none}
+#wrap{position:relative;height:calc(100% - 28px);aspect-ratio:470/660;max-width:100%}
+canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+#msg{position:absolute;left:0;right:0;top:56%;text-align:center;font-size:11px;line-height:1.9;color:#eee;pointer-events:none;padding:0 70px}
+#hint{font-size:8px;height:28px;line-height:28px;color:#888}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="470" height="660"></canvas><div id="msg"></div></div>
+<div id="hint">← → ou arraste · primeiro a 11</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),msg=document.getElementById('msg');
+const W=470,H=660,L=68,R=398,PW=50,PH=14,TOP_Y=50,BOT_Y=600,B=10,WIN=11;
+const D={0:'111101101101111',1:'010110010010111',2:'111001111100111',3:'111001111001111',4:'101101111001001',5:'111100111001111',6:'111100111101111',7:'111001001001001',8:'111101111101111',9:'111101111001111'};
+let you=0,cpu=0,state='ready',px=(L+R)/2-PW/2,ax=px,bx,by,vx,vy,sp,keys={},target=null,last=0,acc=0,serveDir=1;
+function digits(n,xr,y,s){const str=String(n);let x=xr-str.length*(3*s)-(str.length-1)*s;
+ for(const ch of str){const m=D[ch];for(let i=0;i<15;i++)if(m[i]==='1')ctx.fillRect(x+(i%3)*s,y+Math.floor(i/3)*s,s,s);x+=4*s}}
+function serve(){bx=(L+R)/2-B/2;by=H/2-B/2;sp=4.2;const a=(Math.random()*0.8-0.4);vx=Math.sin(a)*sp;vy=Math.cos(a)*sp*serveDir}
+function show(t){msg.innerHTML=t;msg.style.display=t?'block':'none'}
+function reset(){you=0;cpu=0;serveDir=Math.random()<.5?1:-1;serve();state='ready';show('TOQUE OU<br>ESPAÇO')}
+function start(){if(state==='ready'){state='play';show('')}else if(state==='over')reset()}
+function point(by_you){by_you?you++:cpu++;serveDir=by_you?-1:1;serve();
+ if(you>=WIN||cpu>=WIN){state='over';show(you>=WIN?'VOCÊ<br>VENCEU':'FIM<br>DE JOGO')}else{state='ready';show('')}
+ if(state==='ready')setTimeout(()=>{if(state==='ready')state='play'},700)}
+function step(){
+ let dx=0;if(keys.ArrowLeft||keys.a)dx=-6;if(keys.ArrowRight||keys.d)dx=6;
+ if(target!==null){const t=target-PW/2;dx=Math.max(-9,Math.min(9,t-px))}
+ px=Math.max(L+8,Math.min(R-8-PW,px+dx));
+ if(state!=='play')return;
+ // IA do adversário (imperfeita)
+ const c=ax+PW/2,g=bx+B/2+(vy<0?0:(0));const d=g-c;ax+=Math.max(-3.4,Math.min(3.4,d*0.9));
+ ax=Math.max(L+8,Math.min(R-8-PW,ax));
+ bx+=vx;by+=vy;
+ if(bx<L+8){bx=L+8;vx=Math.abs(vx)}
+ if(bx+B>R-8){bx=R-8-B;vx=-Math.abs(vx)}
+ // raquete de baixo (jogador)
+ if(vy>0&&by+B>=BOT_Y&&by+B<=BOT_Y+PH+vy+2&&bx+B>px&&bx<px+PW)hit(px,-1);
+ // raquete de cima
+ else if(vy<0&&by<=TOP_Y+PH&&by>=TOP_Y-vy-2&&bx+B>ax&&bx<ax+PW)hit(ax,1);
+ if(by>H-20)point(false);else if(by<30)point(true);
+}
+function hit(p,dir){const rel=((bx+B/2)-(p+PW/2))/(PW/2);sp=Math.min(sp+0.35,9);
+ const a=rel*1.0;vx=Math.sin(a)*sp;vy=Math.cos(a)*sp*dir;
+ by=dir<0?BOT_Y-B:TOP_Y+PH}
+function draw(){
+ ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);ctx.fillStyle='#f2f2f2';
+ ctx.fillRect(60,50,8,565);ctx.fillRect(398,50,8,565);
+ for(let x=75;x<392;x+=17)ctx.fillRect(x,326,10,12);
+ ctx.fillRect(ax,TOP_Y,PW,PH);ctx.fillRect(px,BOT_Y,PW,PH);
+ ctx.fillRect(bx,by,B,B);
+ digits(cpu,382,276,8);digits(you,382,350,8);
+}
+function loop(t){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){step();acc-=16.67}draw();requestAnimationFrame(loop)}
+addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();start()}keys[e.key]=true;if(e.key.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>{keys[e.key]=false});
+function pos(e){const r=cv.getBoundingClientRect();return(e.clientX-r.left)/r.width*W}
+cv.addEventListener('pointerdown',e=>{target=pos(e);start()});
+cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'||e.buttons)target=pos(e)});
+cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')target=null});
+addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')target=null});
+reset();requestAnimationFrame(t=>{last=t;loop(t)});
+</script>
+</body>
+</html>
